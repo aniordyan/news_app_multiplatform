@@ -21,15 +21,26 @@ class TopHeadlinesViewModel(
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
+    private var currentCategory: String? = null
+    private var currentQuery: String? = null
+
     init {
         refresh()
+    }
+
+    fun setCategory(category: String?) {
+        currentCategory = category
+    }
+
+    fun setQuery(query: String?) {
+        currentQuery = query
     }
 
     fun refresh() {
         _uiState.value = UiState.Loading
         viewModelScope.launch {
             try {
-                val articles = getTopHeadlinesUseCase()
+                val articles = getTopHeadlinesUseCase("us", currentCategory, currentQuery)
                 _uiState.value = UiState.Success(articles)
             } catch (t: Throwable) {
                 _uiState.value = UiState.Error(t.message ?: "Unknown error")
@@ -37,4 +48,3 @@ class TopHeadlinesViewModel(
         }
     }
 }
-

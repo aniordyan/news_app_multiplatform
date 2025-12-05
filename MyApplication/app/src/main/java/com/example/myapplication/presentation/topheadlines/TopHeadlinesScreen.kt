@@ -30,6 +30,17 @@ import androidx.compose.ui.draw.clip
 import coil.compose.AsyncImage
 import com.example.myapplication.domain.model.Article
 
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopHeadlinesScreen(
@@ -38,6 +49,11 @@ fun TopHeadlinesScreen(
     onArticleClick: (Article) -> Unit = {}
 ) {
     val state = viewModel.uiState.collectAsState()
+
+    // UI state for search and filter dialog
+    val searchState = remember { mutableStateOf(TextFieldValue("")) }
+    val showFilterDialog = remember { mutableStateOf(false) }
+    val selectedCategory = remember { mutableStateOf<String?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
         // Dark blue header titled "News" implemented as a simple Box to avoid TopAppBarDefaults version issues
@@ -48,7 +64,71 @@ fun TopHeadlinesScreen(
                 .background(Color(0xFF0D47A1)),
             contentAlignment = Alignment.CenterStart
         ) {
-            Text(text = "News", color = Color.White, modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.titleMedium)
+            // Title + search + filter on one row
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Start) {
+                Text(text = "News", color = Color.White, modifier = Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium)
+
+                // Spacer-like padding
+                androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
+
+                // Search field (compact) with a trailing search icon to apply
+                TextField(
+                    value = searchState.value,
+                    onValueChange = { searchState.value = it },
+                    placeholder = { Text(text = "Search", color = Color.White.copy(alpha = 0.7f)) },
+                    singleLine = true,
+                    // Use default colors to avoid unresolved symbol issues in this environment
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            viewModel.setQuery(if (searchState.value.text.isBlank()) null else searchState.value.text)
+                            viewModel.refresh()
+                        }) {
+                            Icon(painter = painterResource(android.R.drawable.ic_menu_search), contentDescription = "Search", tint = Color.White)
+                        }
+                    },
+                    modifier = Modifier.height(40.dp).padding(end = 8.dp)
+                )
+
+                // Filter icon
+                IconButton(onClick = { showFilterDialog.value = true }) {
+                    Icon(
+                        painter = painterResource(android.R.drawable.ic_menu_sort_by_size),
+                        contentDescription = "Filters",
+                        tint = Color.White
+                    )
+                }
+            }
+        }
+
+        // Filter dialog
+        if (showFilterDialog.value) {
+            AlertDialog(
+                onDismissRequest = { showFilterDialog.value = false },
+                confirmButton = {
+                    Button(onClick = {
+                        // Apply selected category and refresh
+                        viewModel.setCategory(selectedCategory.value)
+                        viewModel.refresh()
+                        showFilterDialog.value = false
+                    }) {
+                        Text("Apply")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = { showFilterDialog.value = false }) { Text("Cancel") }
+                },
+                title = { Text(text = "Filters") },
+                text = {
+                    Column {
+                        FilterOption("Business", selectedCategory.value == "business") { selectedCategory.value = "business" }
+                        FilterOption("Entertainment", selectedCategory.value == "entertainment") { selectedCategory.value = "entertainment" }
+                        FilterOption("General", selectedCategory.value == "general") { selectedCategory.value = "general" }
+                        FilterOption("Health", selectedCategory.value == "health") { selectedCategory.value = "health" }
+                        // Add a clear option
+                        Button(onClick = { selectedCategory.value = null }) { Text("Clear") }
+                    }
+                }
+            )
         }
 
         when (val s = state.value) {
@@ -88,6 +168,17 @@ fun TopHeadlinesScreen(
 }
 
 @Composable
+private fun FilterOption(label: String, selected: Boolean, onSelect: () -> Unit) {
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .clickable { onSelect() }
+        .padding(vertical = 8.dp)) {
+        Text(text = label, modifier = Modifier.weight(1f))
+        if (selected) Text(text = "✓")
+    }
+}
+
+@Composable
 private fun ArticleItem(article: Article, onClick: (Article) -> Unit) {
     Card(modifier = Modifier
         .padding(8.dp)
@@ -104,7 +195,7 @@ private fun ArticleItem(article: Article, onClick: (Article) -> Unit) {
                 contentScale = ContentScale.Crop
             )
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text(text = article.title ?: "(No title)", style = MaterialTheme.typography.titleMedium)
+                Text(text = article.title ?: "(No title)", style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(text = article.sourceName ?: "", style = MaterialTheme.typography.bodySmall)
             }
         }

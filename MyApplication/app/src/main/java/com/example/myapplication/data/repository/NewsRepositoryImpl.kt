@@ -10,8 +10,8 @@ class NewsRepositoryImpl(
     private val remote: NewsRemoteDataSource,
     private val apiKey: String
 ) : NewsRepository {
-    override suspend fun getTopHeadlines(country: String): List<Article> {
-        val response: NewsResponseDto = remote.getTopHeadlines(apiKey = apiKey, country = country)
+    override suspend fun getTopHeadlines(country: String, category: String?, query: String?): List<Article> {
+        val response: NewsResponseDto = remote.getTopHeadlines(apiKey = apiKey, country = country, category = category, query = query)
         return response.articles.map { it.toDomain() }
     }
 }
@@ -26,4 +26,3 @@ private fun ArticleDto.toDomain(): Article = Article(
     publishedAt = this.publishedAt,
     content = this.content
 )
-

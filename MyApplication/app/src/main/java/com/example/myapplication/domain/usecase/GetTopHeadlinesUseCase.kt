@@ -4,7 +4,6 @@ import com.example.myapplication.domain.model.Article
 import com.example.myapplication.domain.repository.NewsRepository
 
 class GetTopHeadlinesUseCase(private val repository: NewsRepository) {
-    suspend operator fun invoke(country: String = "us"): List<Article> =
-        repository.getTopHeadlines(country)
+    suspend operator fun invoke(country: String = "us", category: String? = null, query: String? = null): List<Article> =
+        repository.getTopHeadlines(country, category, query)
 }
-
